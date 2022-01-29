@@ -1,0 +1,97 @@
+#!/usr/bin/python3
+import concurrent.futures
+import os
+import sys
+import signal
+
+try:
+    dirname = sys.argv[1]
+    urls = []
+    filename = sys.argv[2]
+    cleanUrls = []
+    validJsurls = []
+    jsurls = []
+    validUrls = []
+
+    def signal_handler(signal, frame):
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    def createFile(filename):
+        os.system(f'mkdir {filename}')
+
+    def createFile2(filename):
+        os.system(f'mkdir {dirname}/{filename}')    
+
+    createFile(dirname)
+
+    def appendUrl(filename):
+        with open(f'{filename}', 'r') as f:
+            for url in f:
+                url = url.strip()
+                urls.append(url)
+
+    appendUrl(filename)
+
+    def createTxtFile(txtFileName):
+        os.system(f'touch {dirname}/{txtFileName}')
+    
+    def createFile2(txtFileName):
+        os.system(f'mkdir {dirname}/{txtFileName}')      
+
+
+    def main(url):
+        if url[-1] == "/":
+            url = url[:-1]
+        url = url.strip()
+        
+        if url.startswith("http://"):
+            cleanUrl = url.replace("http://", "") 
+        else:
+            cleanUrl = url.replace("https://", "")   
+        cleanUrl = cleanUrl.strip()
+        print(cleanUrl)
+        cleanUrls.append(cleanUrl)
+
+        createFile2(cleanUrl)
+        os.system(f'echo {url} | hakrawler -subs -u -insecure -d 3 >> {dirname}/{cleanUrl}/junk.txt')
+        
+        
+        with open(f'{dirname}/{cleanUrl}/junk.txt', 'r') as f:
+            for jslink in f:
+                
+                if jslink.startswith("/"):
+                    jsUrl = f'{url}{jslink}'
+                    validUrls.append(jsUrl)
+                        
+                else:
+                    jsUrl = jslink
+                    jsUrl = jsUrl.strip()
+                    jsUrl = jsUrl.strip()
+                    validUrls.append(jsUrl)
+        
+
+
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(main, urls)
+    
+        
+    for link in validUrls:
+        os.system(f'echo {link} >> links.txt')
+
+    for url in cleanUrls:
+        os.system(f'cat links.txt | grep {url} | grep .js >> {url}.txt')    
+
+    os.system('rm -rf links.txt')
+
+    for url in cleanUrls:
+        os.system(f'mv {url}.txt {dirname}/{url}/')
+
+    for url in cleanUrls:
+        os.system(f'rm -rf {dirname}/{url}/junk.txt')    
+
+except IndexError as e:
+    print('Usage: ')
+    print(f'{sys.argv[0]} <Project_Name> <Urls>')
